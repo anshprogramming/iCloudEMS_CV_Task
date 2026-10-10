@@ -1,0 +1,9 @@
+1. How would you scale this from one live camera to 500 cameras streaming at once? Where would it break first?
+I would move the YOLO/ByteTrack inference to the edge (e.g., local servers or Nvidia Jetson devices in each building) rather than streaming raw video to a central cloud. This prevents the network bandwidth from breaking first, as 500 raw video streams would require massive, unsustainable ingress capacity. The edge devices would only send lightweight JSON metadata (e.g., {"room": 101, "count": 5}) to a central message broker like Kafka for aggregation.
+
+2. How would you avoid double-counting or losing track of a person if they briefly leave the camera's view?
+To prevent double-counting from brief occlusions, I would implement a track "grace period" (e.g., keeping the track ID alive in memory for 2–3 seconds even if the person is temporarily undetected). For longer absences where a person leaves the room and returns, I would integrate a Re-Identification (ReID) model. ReID extracts a visual embedding of the person's appearance, allowing the system to match them to their previous ID rather than creating a brand new one.
+
+
+3. How would you handle a camera feed that's consistently blurry or poor quality — flag it, skip it, or something else?
+I would flag it and degrade gracefully, but never silently skip it. I would run a lightweight blur check (like Laplacian variance) and, if blurry, skip the heavy YOLO inference to save edge-compute resources. If the blur persists for a set threshold (e.g., 5 minutes), the system should automatically trigger an alert to facilities to clean or refocus the camera, preventing silent security blind spots.
